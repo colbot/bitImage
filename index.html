@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image to LCD Bitmap Converter | 图像转LCD单色点阵工具</title>
+  <style>
+    :root {
+      --bg-primary: #0b1120;
+      --bg-secondary: #1e293b;
+      --bg-card: #151f32;
+      --bg-tertiary: #334155;
+      --border-color: #334155;
+      --border-highlight: #475569;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --success: #10b981;
+      --danger: #ef4444;
+      --panel-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #0ea5e9, #10b981);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+      user-select: none;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .lang-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+    }
+
+    /* App Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: 370px 1fr;
+      flex: 1;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
+
+    @media (max-width: 1080px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+      }
+    }
+
+    /* Sidebar / Control Panel */
+    .control-panel {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form Elements */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.825rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    input[type="number"],
+    select {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .file-drop-area {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(11, 17, 32, 0.4);
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .file-drop-area:hover,
+    .file-drop-area.drag-over {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .file-drop-icon {
+      font-size: 26px;
+      margin-bottom: 4px;
+    }
+
+    .file-drop-text {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    .file-drop-text strong {
+      color: var(--accent);
+    }
+
+    #imageInput {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Range slider */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+    }
+
+    .slider-val {
+      font-family: monospace;
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Checkbox & Switch */
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .checkbox-row span {
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    /* Color picker row */
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      width: 38px;
+      height: 32px;
+      cursor: pointer;
+      background: transparent;
+      padding: 2px;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 7px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      outline: none;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      box-shadow: 0 6px 16px rgba(14, 165, 233, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-highlight);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    /* Main Workspace */
+    .workspace {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      overflow-y: auto;
+      background: #060a12;
+    }
+
+    @media (max-width: 1200px) {
+      .workspace {
+        grid-template-rows: auto auto;
+      }
+    }
+
+    .view-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--panel-shadow);
+      min-height: 320px;
+    }
+
+    .view-card-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .view-card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-tags {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .view-badge {
+      font-size: 0.75rem;
+      background: var(--bg-tertiary);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .view-card-body {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: 
+        linear-gradient(45deg, #131b2c 25%, transparent 25%), 
+        linear-gradient(-45deg, #131b2c 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #131b2c 75%), 
+        linear-gradient(-45deg, transparent 75%, #131b2c 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      padding: 16px;
+    }
+
+    /* Image Preview & Crop Box */
+    .image-preview-wrapper {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      user-select: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      border-radius: 4px;
+      overflow: visible;
+    }
+
+    #sourceImage {
+      display: block;
+      max-width: 100%;
+      max-height: 48vh;
+      object-fit: contain;
+      pointer-events: none;
+      border-radius: 4px;
+    }
+
+    .crop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: auto;
+      cursor: crosshair;
+      overflow: visible;
+    }
+
+    .crop-box {
+      position: absolute;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 12px rgba(56, 189, 248, 0.6);
+      cursor: move;
+      pointer-events: auto;
+      box-sizing: border-box;
+      touch-action: none;
+    }
+
+    .crop-grid {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      pointer-events: none;
+    }
+
+    .crop-grid div {
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+    }
+
+    .crop-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 2px solid #0284c7;
+      border-radius: 2px;
+      pointer-events: auto;
+      box-sizing: border-box;
+      touch-action: none;
+      z-index: 10;
+    }
+
+    .handle-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+    .handle-n  { top: -6px; left: calc(50% - 6px); cursor: ns-resize; }
+    .handle-ne { top: -6px; right: -6px; cursor: nesw-resize; }
+    .handle-e  { top: calc(50% - 6px); right: -6px; cursor: ew-resize; }
+    .handle-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+    .handle-s  { bottom: -6px; left: calc(50% - 6px); cursor: ns-resize; }
+    .handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+    .handle-w  { top: calc(50% - 6px); left: -6px; cursor: ew-resize; }
+
+    /* LCD Result View */
+    .lcd-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      max-width: 100%;
+    }
+
+    .lcd-bezel {
+      background: #0f172a;
+      border: 6px solid #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.9), 0 10px 30px rgba(0, 0, 0, 0.7);
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      overflow: auto;
+    }
+
+    .lcd-screen-glass {
+      position: relative;
+      overflow: hidden;
+      border-radius: 4px;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+    }
+
+    #lcdCanvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .lcd-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      justify-content: center;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .metric-item strong {
+      color: var(--text-main);
+    }
+
+    /* Code Export Section */
+    .code-export-area {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .code-box {
+      width: 100%;
+      height: 110px;
+      background: #060a12;
+      border: 1px solid var(--border-color);
+      color: #38bdf8;
+      font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+      font-size: 0.75rem;
+      padding: 8px;
+      border-radius: 6px;
+      resize: vertical;
+      white-space: pre;
+      line-height: 1.4;
+    }
+
+    .tip-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Controls bar in LCD card */
+    .zoom-select {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      outline: none;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .header-actions {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">▦</div>
+      <div>
+        <div class="brand-title" data-i18n="appTitle">Image to LCD Bitmap</div>
+        <div class="brand-subtitle" data-i18n="appSubtitle">Convert gray image into 1-bit depth mask for LCD display</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="lang-btn" id="langToggle">中文 / English</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+
+    <!-- Sidebar / Settings -->
+    <aside class="control-panel">
+
+      <!-- 1. Image Upload Section -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>📁</span>
+          <span data-i18n="secImageUpload">Image Input</span>
+        </div>
+
+        <div class="file-drop-area" id="fileDropArea">
+          <input type="file" id="imageInput" accept="image/*">
+          <div class="file-drop-icon">🖼️</div>
+          <div class="file-drop-text">
+            <span data-i18n="dropText">Drag image here or <strong>browse</strong></span>
+          </div>
+        </div>
+
+        <div class="tip-text" id="imageDetails" style="display: none;">
+          <span data-i18n="imgResolution">Source:</span> <span id="imgResText">0 x 0</span>
+        </div>
+      </div>
+
+      <!-- 2. Target LCD Resolution & Pixel Aspect Ratio -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>📐</span>
+          <span data-i18n="secTargetSpec">Target LCD Spec</span>
+        </div>
+
+        <div class="form-group">
+          <label data-i18n="quickPresets">Standard Resolution Presets:</label>
+          <select id="presetSelect">
+            <option value="custom" data-i18n="optCustom">Custom Resolution</option>
+            <option value="128x64" selected>128 x 64 (OLED / ST7920)</option>
+            <option value="128x32">128 x 32 (Mini OLED)</option>
+            <option value="256x64">256 x 64 (Graphic LCD)</option>
+            <option value="84x48">84 x 48 (Nokia 5110)</option>
+            <option value="160x160">160 x 160 (Mono Square)</option>
+            <option value="240x128">240 x 128 (T6963C LCD)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label data-i18n="targetWidth">Target Width (px)</label>
+            <input type="number" id="targetWidth" value="128" min="4" max="1024" step="1">
+          </div>
+          <div class="form-group">
+            <label data-i18n="targetHeight">Target Height (px)</label>
+            <input type="number" id="targetHeight" value="64" min="4" max="1024" step="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label data-i18n="bitWidthRatio">Bit Width Ratio</label>
+            <input type="number" id="bitWidthRatio" value="1.0" min="0.1" max="10.0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label data-i18n="bitHeightRatio">Bit Height Ratio</label>
+            <input type="number" id="bitHeightRatio" value="1.0" min="0.1" max="10.0" step="0.1">
+          </div>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="lockCropAspect" checked>
+          <span data-i18n="lockCropAspect">Lock Box to LCD Aspect Ratio</span>
+        </div>
+      </div>
+
+      <!-- 3. Conversion & Threshold & Dithering -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>⚙️</span>
+          <span data-i18n="secBinarization">1-Bit Conversion</span>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between;">
+            <label data-i18n="thresholdLabel">Binarization Threshold (0 - 255):</label>
+            <span class="slider-val" id="thresholdValue">128</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="thresholdSlider" min="0" max="255" value="128">
+          </div>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="useDithering" checked>
+          <span data-i18n="useDithering">Enable Dithering (Floyd-Steinberg)</span>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="invertBits">
+          <span data-i18n="invertBits">Revert Result (0 and 1)</span>
+        </div>
+
+        <div class="color-row">
+          <label data-i18n="colorBit1">Result 1 Color (Active Pixel):</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="colorBit1" value="#10b981">
+          </div>
+        </div>
+
+        <div class="color-row">
+          <label data-i18n="colorBit0">Result 0 Color (Background):</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="colorBit0" value="#091b15">
+          </div>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showPixelGrid" checked>
+          <span data-i18n="showPixelGrid">Simulate LCD Grid / Pixel Gap</span>
+        </div>
+      </div>
+
+      <!-- 4. Conversion Action Buttons -->
+      <div class="panel-section">
+        <button class="btn btn-primary btn-full" id="convertBtn">
+          <span>⚡</span>
+          <span data-i18n="btnConvert">Convert / Refresh LCD Bitmap</span>
+        </button>
+
+        <button class="btn btn-secondary btn-full" id="fitCropBtn">
+          <span>⛶</span>
+          <span data-i18n="btnFitCrop">Fit Selection to Full Image</span>
+        </button>
+      </div>
+
+      <!-- 5. Export Code / Output -->
+      <div class="panel-section code-export-area">
+        <div class="section-title">
+          <span>💾</span>
+          <span data-i18n="secExport">C Code & Bitmap Export</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label data-i18n="lblFormat">Format:</label>
+            <select id="exportFormat">
+              <option value="horizontal_msb">Horizontal (X-first, MSB)</option>
+              <option value="horizontal_lsb">Horizontal (X-first, LSB)</option>
+              <option value="vertical_page">Vertical Page (SSD1306 / Nokia)</option>
+              <option value="hex_raw">Raw Hex Array</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content: flex-end;">
+            <button class="btn btn-secondary" id="copyCodeBtn" style="padding: 7px 10px;">
+              <span data-i18n="btnCopyCode">📋 Copy C Array</span>
+            </button>
+          </div>
+        </div>
+
+        <textarea class="code-box" id="codeOutput" readonly spellcheck="false"></textarea>
+
+        <button class="btn btn-secondary btn-full" id="downloadImageBtn">
+          <span>📥</span>
+          <span data-i18n="btnDownloadImage">Download 1-Bit PNG</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Main Workspace (Image Preview + LCD Result) -->
+    <main class="workspace">
+
+      <!-- View 1: Source Image Preview with Target Area Box -->
+      <section class="view-card">
+        <div class="view-card-header">
+          <div class="view-card-title">
+            <span>📷</span>
+            <span data-i18n="previewCardTitle">Source Image Preview & Target Area</span>
+          </div>
+          <div class="view-badge" id="cropBoxInfo">X: 0, Y: 0 | W: 0, H: 0</div>
+        </div>
+        <div class="view-card-body" id="previewContainer">
+          <div class="image-preview-wrapper" id="imageWrapper">
+            <img id="sourceImage" alt="Preview">
+            <!-- Interactive Crop Box Overlay -->
+            <div class="crop-overlay" id="cropOverlay">
+              <div class="crop-box" id="cropBox">
+                <div class="crop-grid">
+                  <div></div><div></div><div></div>
+                  <div></div><div></div><div></div>
+                  <div></div><div></div><div></div>
+                </div>
+                <!-- 8 Handles for resizing and moving -->
+                <div class="crop-handle handle-nw" data-handle="nw"></div>
+                <div class="crop-handle handle-n"  data-handle="n"></div>
+                <div class="crop-handle handle-ne" data-handle="ne"></div>
+                <div class="crop-handle handle-e"  data-handle="e"></div>
+                <div class="crop-handle handle-se" data-handle="se"></div>
+                <div class="crop-handle handle-s"  data-handle="s"></div>
+                <div class="crop-handle handle-sw" data-handle="sw"></div>
+                <div class="crop-handle handle-w"  data-handle="w"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 2: Converted LCD Matrix Result Preview -->
+      <section class="view-card">
+        <div class="view-card-header">
+          <div class="view-card-title">
+            <span>📺</span>
+            <span data-i18n="lcdCardTitle">LCD 1-Bit Depth Result</span>
+          </div>
+          <div class="header-tags">
+            <select class="zoom-select" id="zoomSelect">
+              <option value="auto" data-i18n="zoomAuto">Auto Zoom</option>
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option value="3">3x</option>
+              <option value="4">4x</option>
+              <option value="6">6x</option>
+            </select>
+            <div class="view-badge" id="lcdResolutionBadge">128 × 64 px</div>
+          </div>
+        </div>
+        <div class="view-card-body">
+          <div class="lcd-container">
+            <div class="lcd-bezel">
+              <div class="lcd-screen-glass">
+                <canvas id="lcdCanvas"></canvas>
+              </div>
+            </div>
+
+            <div class="lcd-metrics">
+              <div class="metric-item">
+                <span data-i18n="metricTotalPixels">Total Pixels:</span>
+                <strong id="metricTotal">8192</strong>
+              </div>
+              <div class="metric-item">
+                <span data-i18n="metricActivePixels">Active (1):</span>
+                <strong id="metricActive" style="color: var(--accent);">0</strong>
+              </div>
+              <div class="metric-item">
+                <span data-i18n="metricInactivePixels">Inactive (0):</span>
+                <strong id="metricInactive">0</strong>
+              </div>
+              <div class="metric-item">
+                <span data-i18n="metricByteSize">Buffer Size:</span>
+                <strong id="metricBytes">1024 Bytes</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    /**
+     * Internationalization Dictionary
+     */
+    const i18n = {
+      en: {
+        appTitle: "Image to LCD Bitmap",
+        appSubtitle: "Convert gray image into 1-bit depth mask for LCD display",
+        secImageUpload: "Image Input",
+        dropText: "Drag image here or <strong>browse</strong>",
+        imgResolution: "Source:",
+        secTargetSpec: "Target LCD Spec",
+        quickPresets: "Standard Resolution Presets:",
+        optCustom: "Custom Resolution",
+        targetWidth: "Target Width (px)",
+        targetHeight: "Target Height (px)",
+        bitWidthRatio: "Bit Width Ratio",
+        bitHeightRatio: "Bit Height Ratio",
+        lockCropAspect: "Lock Box to LCD Aspect Ratio",
+        secBinarization: "1-Bit Conversion",
+        thresholdLabel: "Binarization Threshold (0 - 255):",
+        useDithering: "Enable Dithering (Floyd-Steinberg)",
+        invertBits: "Revert Result (0 and 1)",
+        colorBit1: "Result 1 Color (Active Pixel):",
+        colorBit0: "Result 0 Color (Background):",
+        showPixelGrid: "Simulate LCD Grid / Pixel Gap",
+        btnConvert: "Convert / Refresh LCD Bitmap",
+        btnFitCrop: "Fit Selection to Full Image",
+        secExport: "C Code & Bitmap Export",
+        lblFormat: "Format:",
+        btnCopyCode: "📋 Copy C Array",
+        btnDownloadImage: "📥 Download 1-Bit PNG",
+        previewCardTitle: "Source Image Preview & Target Area",
+        lcdCardTitle: "LCD 1-Bit Depth Result",
+        zoomAuto: "Auto Zoom",
+        metricTotalPixels: "Total Pixels:",
+        metricActivePixels: "Active (1):",
+        metricInactivePixels: "Inactive (0):",
+        metricByteSize: "Buffer Size:",
+        copiedAlert: "C Bitmap code copied to clipboard!",
+        copyFailed: "Failed to copy to clipboard",
+        sampleImageLoaded: "Default test pattern loaded"
+      },
+      zh: {
+        appTitle: "图像转 LCD 点阵工具",
+        appSubtitle: "将灰度图像转换为用于 LCD 显示的 1 位深度单色点阵掩码",
+        secImageUpload: "图像载入",
+        dropText: "拖拽图像至此或 <strong>点击浏览</strong>",
+        imgResolution: "原图尺寸：",
+        secTargetSpec: "目标 LCD 规格",
+        quickPresets: "常用分辨率预设：",
+        optCustom: "自定义分辨率",
+        targetWidth: "目标宽度 (像素)",
+        targetHeight: "目标高度 (像素)",
+        bitWidthRatio: "单像素宽度比例",
+        bitHeightRatio: "单像素高度比例",
+        lockCropAspect: "选框锁定为 LCD 宽高比",
+        secBinarization: "单色二值化参数",
+        thresholdLabel: "二值化阈值 (0 - 255)：",
+        useDithering: "启用误差扩散抖动 (Floyd-Steinberg)",
+        invertBits: "反转结果 (0 与 1 互换)",
+        colorBit1: "结果 1 颜色 (点亮像素)：",
+        colorBit0: "结果 0 颜色 (底色/熄灭)：",
+        showPixelGrid: "模拟 LCD 像素间隙点阵感",
+        btnConvert: "转换 / 刷新点阵图像",
+        btnFitCrop: "重置选框至全图",
+        secExport: "C 语言代码与图像导出",
+        lblFormat: "点阵取模格式：",
+        btnCopyCode: "📋 复制 C 语言数组",
+        btnDownloadImage: "📥 下载 1-Bit 单色 PNG",
+        previewCardTitle: "原图预览与选区调节",
+        lcdCardTitle: "LCD 1 位单色点阵效果预览",
+        zoomAuto: "自适应缩放",
+        metricTotalPixels: "总像素数：",
+        metricActivePixels: "点亮点数 (1)：",
+        metricInactivePixels: "熄灭点数 (0)：",
+        metricByteSize: "显存占用：",
+        copiedAlert: "C 语言点阵数组已复制到剪贴板！",
+        copyFailed: "复制失败，请手动复制文本框内容",
+        sampleImageLoaded: "已加载默认测试图样"
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      const texts = i18n[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (texts[key]) {
+          if (el.tagName === 'STRONG' || el.tagName === 'SPAN' || el.tagName === 'BUTTON' || el.tagName === 'LABEL' || el.tagName === 'DIV' || el.tagName === 'OPTION') {
+            el.innerHTML = texts[key];
+          } else {
+            el.textContent = texts[key];
+          }
+        }
+      });
+      document.title = (lang === 'zh') ? "图像转LCD单色点阵工具" : "Image to LCD Bitmap Converter";
+      updateResolutionBadge();
+    }
+
+    /**
+     * Application State
+     */
+    const state = {
+      image: new Image(),
+      imageLoaded: false,
+      naturalWidth: 0,
+      naturalHeight: 0,
+      // Target area in NATURAL image coordinates
+      crop: {
+        x: 0,
+        y: 0,
+        w: 128,
+        h: 64
+      },
+      // Target LCD resolution
+      targetW: 128,
+      targetH: 64,
+      // Single bit aspect ratio
+      bitRatioW: 1.0,
+      bitRatioH: 1.0,
+      // Conversion parameters
+      threshold: 128,
+      dithering: true,
+      invert: false,
+      color1: '#10b981',
+      color0: '#091b15',
+      showGrid: true,
+      lockAspect: true,
+      zoomMode: 'auto',
+      // Converted binary matrix (Uint8Array of 0s and 1s, size: targetW * targetH)
+      binaryData: null
+    };
+
+    // DOM Elements
+    const elements = {
+      langToggle: document.getElementById('langToggle'),
+      imageInput: document.getElementById('imageInput'),
+      fileDropArea: document.getElementById('fileDropArea'),
+      imageDetails: document.getElementById('imageDetails'),
+      imgResText: document.getElementById('imgResText'),
+      presetSelect: document.getElementById('presetSelect'),
+      targetWidth: document.getElementById('targetWidth'),
+      targetHeight: document.getElementById('targetHeight'),
+      bitWidthRatio: document.getElementById('bitWidthRatio'),
+      bitHeightRatio: document.getElementById('bitHeightRatio'),
+      lockCropAspect: document.getElementById('lockCropAspect'),
+      thresholdSlider: document.getElementById('thresholdSlider'),
+      thresholdValue: document.getElementById('thresholdValue'),
+      useDithering: document.getElementById('useDithering'),
+      invertBits: document.getElementById('invertBits'),
+      colorBit1: document.getElementById('colorBit1'),
+      colorBit0: document.getElementById('colorBit0'),
+      showPixelGrid: document.getElementById('showPixelGrid'),
+      convertBtn: document.getElementById('convertBtn'),
+      fitCropBtn: document.getElementById('fitCropBtn'),
+      sourceImage: document.getElementById('sourceImage'),
+      imageWrapper: document.getElementById('imageWrapper'),
+      cropOverlay: document.getElementById('cropOverlay'),
+      cropBox: document.getElementById('cropBox'),
+      cropBoxInfo: document.getElementById('cropBoxInfo'),
+      lcdCanvas: document.getElementById('lcdCanvas'),
+      lcdResolutionBadge: document.getElementById('lcdResolutionBadge'),
+      zoomSelect: document.getElementById('zoomSelect'),
+      metricTotal: document.getElementById('metricTotal'),
+      metricActive: document.getElementById('metricActive'),
+      metricInactive: document.getElementById('metricInactive'),
+      metricBytes: document.getElementById('metricBytes'),
+      exportFormat: document.getElementById('exportFormat'),
+      codeOutput: document.getElementById('codeOutput'),
+      copyCodeBtn: document.getElementById('copyCodeBtn'),
+      downloadImageBtn: document.getElementById('downloadImageBtn')
+    };
+
+    /**
+     * Initialization
+     */
+    function init() {
+      setupEventListeners();
+      setupCropBoxInteraction();
+      generateDefaultSampleImage();
+      const savedLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+      setLanguage(savedLang);
+    }
+
+    /**
+     * Generate Default Test Pattern Image
+     */
+    function generateDefaultSampleImage() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 600, 400);
+      bgGrad.addColorStop(0, '#1e293b');
+      bgGrad.addColorStop(1, '#0b1120');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 600, 400);
+
+      // Shaded sphere showcasing smooth gradient dithering
+      const radGrad = ctx.createRadialGradient(180, 180, 10, 180, 180, 120);
+      radGrad.addColorStop(0, '#ffffff');
+      radGrad.addColorStop(0.5, '#64748b');
+      radGrad.addColorStop(1, '#0b1120');
+      ctx.fillStyle = radGrad;
+      ctx.beginPath();
+      ctx.arc(180, 180, 120, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sharp geometric shapes
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(340, 70, 200, 120);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.moveTo(440, 90);
+      ctx.lineTo(510, 170);
+      ctx.lineTo(370, 170);
+      ctx.closePath();
+      ctx.fill();
+
+      // Text elements
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px monospace';
+      ctx.fillText('LCD 1-BIT', 340, 250);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '20px sans-serif';
+      ctx.fillText('Floyd-Steinberg Test', 340, 290);
+
+      // Linear gray gradient strip at the bottom
+      const grayStrip = ctx.createLinearGradient(50, 330, 550, 330);
+      grayStrip.addColorStop(0, '#000000');
+      grayStrip.addColorStop(0.25, '#475569');
+      grayStrip.addColorStop(0.5, '#94a3b8');
+      grayStrip.addColorStop(0.75, '#e2e8f0');
+      grayStrip.addColorStop(1, '#ffffff');
+      ctx.fillStyle = grayStrip;
+      ctx.fillRect(50, 330, 500, 35);
+      ctx.strokeRect(50, 330, 500, 35);
+
+      loadImageFromUrl(canvas.toDataURL());
+    }
+
+    /**
+     * Load image from URL / Data URL
+     */
+    function loadImageFromUrl(url) {
+      state.image = new Image();
+      state.image.onload = () => {
+        state.imageLoaded = true;
+        state.naturalWidth = state.image.naturalWidth;
+        state.naturalHeight = state.image.naturalHeight;
+
+        elements.sourceImage.onload = () => {
+          elements.imageDetails.style.display = 'block';
+          elements.imgResText.textContent = `${state.naturalWidth} × ${state.naturalHeight} px`;
+
+          fitCropBoxToCenter();
+          updateCropBoxUI();
+          convertImage();
+        };
+
+        elements.sourceImage.src = url;
+      };
+      state.image.src = url;
+    }
+
+    /**
+     * Event Listeners setup
+     */
+    function setupEventListeners() {
+      // Language toggle
+      elements.langToggle.addEventListener('click', () => {
+        setLanguage(currentLang === 'en' ? 'zh' : 'en');
+      });
+
+      // File input
+      elements.imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => loadImageFromUrl(evt.target.result);
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Drag and drop
+      elements.fileDropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        elements.fileDropArea.classList.add('drag-over');
+      });
+
+      elements.fileDropArea.addEventListener('dragleave', () => {
+        elements.fileDropArea.classList.remove('drag-over');
+      });
+
+      elements.fileDropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        elements.fileDropArea.classList.remove('drag-over');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          const file = e.dataTransfer.files[0];
+          const reader = new FileReader();
+          reader.onload = (evt) => loadImageFromUrl(evt.target.result);
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Presets dropdown
+      elements.presetSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val !== 'custom') {
+          const [w, h] = val.split('x').map(Number);
+          elements.targetWidth.value = w;
+          elements.targetHeight.value = h;
+          onDimensionChange();
+        }
+      });
+
+      // Target Dimensions & Ratio
+      elements.targetWidth.addEventListener('input', onDimensionChange);
+      elements.targetHeight.addEventListener('input', onDimensionChange);
+      elements.bitWidthRatio.addEventListener('input', onRatioChange);
+      elements.bitHeightRatio.addEventListener('input', onRatioChange);
+
+      elements.lockCropAspect.addEventListener('change', () => {
+        state.lockAspect = elements.lockCropAspect.checked;
+        if (state.lockAspect) {
+          adjustCropToTargetAspect();
+          updateCropBoxUI();
+          convertImage();
+        }
+      });
+
+      // Threshold mover (0 - 255)
+      elements.thresholdSlider.addEventListener('input', (e) => {
+        state.threshold = parseInt(e.target.value, 10);
+        elements.thresholdValue.textContent = state.threshold;
+        convertImage();
+      });
+
+      // Checkboxes & Colors
+      elements.useDithering.addEventListener('change', (e) => {
+        state.dithering = e.target.checked;
+        convertImage();
+      });
+
+      elements.invertBits.addEventListener('change', (e) => {
+        state.invert = e.target.checked;
+        convertImage();
+      });
+
+      elements.colorBit1.addEventListener('input', (e) => {
+        state.color1 = e.target.value;
+        renderLcdCanvas();
+      });
+
+      elements.colorBit0.addEventListener('input', (e) => {
+        state.color0 = e.target.value;
+        renderLcdCanvas();
+      });
+
+      elements.showPixelGrid.addEventListener('change', (e) => {
+        state.showGrid = e.target.checked;
+        renderLcdCanvas();
+      });
+
+      elements.zoomSelect.addEventListener('change', (e) => {
+        state.zoomMode = e.target.value;
+        renderLcdCanvas();
+      });
+
+      // Convert Button
+      elements.convertBtn.addEventListener('click', () => {
+        convertImage();
+      });
+
+      // Fit Crop Button
+      elements.fitCropBtn.addEventListener('click', () => {
+        fitCropBoxToCenter(true);
+        updateCropBoxUI();
+        convertImage();
+      });
+
+      // Export Format & Copy
+      elements.exportFormat.addEventListener('change', updateCodeOutput);
+
+      elements.copyCodeBtn.addEventListener('click', () => {
+        if (!elements.codeOutput.value) return;
+        navigator.clipboard.writeText(elements.codeOutput.value)
+          .then(() => {
+            alert(i18n[currentLang].copiedAlert);
+          })
+          .catch(() => {
+            elements.codeOutput.select();
+            document.execCommand('copy');
+            alert(i18n[currentLang].copiedAlert);
+          });
+      });
+
+      // Download 1-Bit PNG
+      elements.downloadImageBtn.addEventListener('click', downloadBitmapPng);
+
+      // Window resize handling
+      window.addEventListener('resize', () => {
+        if (state.imageLoaded) {
+          updateCropBoxUI();
+          renderLcdCanvas();
+        }
+      });
+    }
+
+    function onDimensionChange() {
+      const w = Math.max(4, parseInt(elements.targetWidth.value, 10) || 128);
+      const h = Math.max(4, parseInt(elements.targetHeight.value, 10) || 64);
+      state.targetW = w;
+      state.targetH = h;
+      updateResolutionBadge();
+
+      if (state.lockAspect) {
+        adjustCropToTargetAspect();
+        updateCropBoxUI();
+      }
+      convertImage();
+    }
+
+    function onRatioChange() {
+      const rw = Math.max(0.1, parseFloat(elements.bitWidthRatio.value) || 1.0);
+      const rh = Math.max(0.1, parseFloat(elements.bitHeightRatio.value) || 1.0);
+      state.bitRatioW = rw;
+      state.bitRatioH = rh;
+
+      if (state.lockAspect) {
+        adjustCropToTargetAspect();
+        updateCropBoxUI();
+      }
+      renderLcdCanvas();
+    }
+
+    function updateResolutionBadge() {
+      elements.lcdResolutionBadge.textContent = `${state.targetW} × ${state.targetH} px`;
+    }
+
+    /**
+     * Calculate effective physical aspect ratio of the target LCD
+     * Physical Width / Physical Height = (TargetW * bitRatioW) / (TargetH * bitRatioH)
+     */
+    function getTargetLcdAspectRatio() {
+      return (state.targetW * state.bitRatioW) / (state.targetH * state.bitRatioH);
+    }
+
+    /**
+     * Center & size crop box to match target LCD aspect ratio
+     */
+    function fitCropBoxToCenter(maximize = false) {
+      if (!state.imageLoaded) return;
+
+      const targetAspect = getTargetLcdAspectRatio();
+      const imgW = state.naturalWidth;
+      const imgH = state.naturalHeight;
+      const imgAspect = imgW / imgH;
+
+      let cropW, cropH;
+
+      if (imgAspect > targetAspect) {
+        // Image is wider than target
+        cropH = maximize ? imgH : Math.min(imgH, imgH * 0.85);
+        cropW = cropH * targetAspect;
+      } else {
+        // Image is taller than target
+        cropW = maximize ? imgW : Math.min(imgW, imgW * 0.85);
+        cropH = cropW / targetAspect;
+      }
+
+      state.crop.w = Math.max(10, Math.min(cropW, imgW));
+      state.crop.h = Math.max(10, Math.min(cropH, imgH));
+      state.crop.x = Math.max(0, (imgW - state.crop.w) / 2);
+      state.crop.y = Math.max(0, (imgH - state.crop.h) / 2);
+    }
+
+    /**
+     * Adjust crop box to preserve target LCD aspect ratio
+     */
+    function adjustCropToTargetAspect() {
+      if (!state.imageLoaded) return;
+      const targetAspect = getTargetLcdAspectRatio();
+      let newW = state.crop.w;
+      let newH = newW / targetAspect;
+
+      if (state.crop.x + newW > state.naturalWidth || state.crop.y + newH > state.naturalHeight || newH > state.naturalHeight) {
+        newH = Math.min(state.crop.h, state.naturalHeight);
+        newW = newH * targetAspect;
+      }
+
+      if (newW > state.naturalWidth) {
+        newW = state.naturalWidth;
+        newH = newW / targetAspect;
+      }
+
+      state.crop.w = Math.max(10, newW);
+      state.crop.h = Math.max(10, newH);
+
+      // Keep within bounds
+      if (state.crop.x + state.crop.w > state.naturalWidth) {
+        state.crop.x = Math.max(0, state.naturalWidth - state.crop.w);
+      }
+      if (state.crop.y + state.crop.h > state.naturalHeight) {
+        state.crop.y = Math.max(0, state.naturalHeight - state.crop.h);
+      }
+    }
+
+    /**
+     * Update crop box HTML overlay based on natural coordinates
+     */
+    function updateCropBoxUI() {
+      if (!state.imageLoaded) return;
+
+      const dispW = elements.sourceImage.clientWidth;
+      const dispH = elements.sourceImage.clientHeight;
+      if (!dispW || !dispH) return;
+
+      const scaleX = dispW / state.naturalWidth;
+      const scaleY = dispH / state.naturalHeight;
+
+      const boxX = state.crop.x * scaleX;
+      const boxY = state.crop.y * scaleY;
+      const boxW = state.crop.w * scaleX;
+      const boxH = state.crop.h * scaleY;
+
+      elements.cropBox.style.left = `${boxX}px`;
+      elements.cropBox.style.top = `${boxY}px`;
+      elements.cropBox.style.width = `${boxW}px`;
+      elements.cropBox.style.height = `${boxH}px`;
+
+      elements.cropBoxInfo.textContent = 
+        `X: ${Math.round(state.crop.x)}, Y: ${Math.round(state.crop.y)} | ` +
+        `W: ${Math.round(state.crop.w)}, H: ${Math.round(state.crop.h)}`;
+    }
+
+    /**
+     * Interactive Crop Box Dragging and Resizing (Pointer Events)
+     */
+    function setupCropBoxInteraction() {
+      let isInteracting = false;
+      let interactionMode = null; // 'move' or handle name: 'nw', 'se', etc.
+      let startPointerX = 0;
+      let startPointerY = 0;
+      let startCrop = { x: 0, y: 0, w: 0, h: 0 };
+
+      function onPointerDown(e) {
+        if (!state.imageLoaded) return;
+
+        const targetHandle = e.target.getAttribute('data-handle');
+
+        if (targetHandle) {
+          interactionMode = targetHandle;
+        } else if (e.target === elements.cropBox || elements.cropBox.contains(e.target)) {
+          interactionMode = 'move';
+        } else if (e.target === elements.cropOverlay) {
+          // Clicked outside crop box: re-center crop box to click point
+          const rect = elements.sourceImage.getBoundingClientRect();
+          const clickDispX = e.clientX - rect.left;
+          const clickDispY = e.clientY - rect.top;
+          const scaleX = state.naturalWidth / elements.sourceImage.clientWidth;
+          const scaleY = state.naturalHeight / elements.sourceImage.clientHeight;
+          const clickNatX = clickDispX * scaleX;
+          const clickNatY = clickDispY * scaleY;
+
+          state.crop.x = Math.max(0, Math.min(clickNatX - state.crop.w / 2, state.naturalWidth - state.crop.w));
+          state.crop.y = Math.max(0, Math.min(clickNatY - state.crop.h / 2, state.naturalHeight - state.crop.h));
+          updateCropBoxUI();
+          convertImage();
+
+          interactionMode = 'move';
+        } else {
+          return;
+        }
+
+        isInteracting = true;
+        startPointerX = e.clientX;
+        startPointerY = e.clientY;
+        startCrop = { ...state.crop };
+
+        if (e.target.setPointerCapture) {
+          try {
+            e.target.setPointerCapture(e.pointerId);
+          } catch (err) {}
+        }
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+        e.preventDefault();
+      }
+
+      function onPointerMove(e) {
+        if (!isInteracting || !state.imageLoaded) return;
+
+        const dispW = elements.sourceImage.clientWidth;
+        const dispH = elements.sourceImage.clientHeight;
+        if (!dispW || !dispH) return;
+
+        const scaleX = state.naturalWidth / dispW;
+        const scaleY = state.naturalHeight / dispH;
+
+        const deltaX = (e.clientX - startPointerX) * scaleX;
+        const deltaY = (e.clientY - startPointerY) * scaleY;
+
+        const imgW = state.naturalWidth;
+        const imgH = state.naturalHeight;
+        const minSize = 10;
+        const aspect = getTargetLcdAspectRatio();
+
+        if (interactionMode === 'move') {
+          let newX = startCrop.x + deltaX;
+          let newY = startCrop.y + deltaY;
+
+          // Clamp
+          newX = Math.max(0, Math.min(newX, imgW - startCrop.w));
+          newY = Math.max(0, Math.min(newY, imgH - startCrop.h));
+
+          state.crop.x = newX;
+          state.crop.y = newY;
+        } else {
+          // Handle Resizing using Anchor Points
+          let x0 = startCrop.x;
+          let y0 = startCrop.y;
+          let x1 = startCrop.x + startCrop.w;
+          let y1 = startCrop.y + startCrop.h;
+
+          if (state.lockAspect) {
+            // Aspect ratio constrained resizing
+            if (interactionMode === 'se') {
+              // Anchor is top-left (x0, y0)
+              let w = Math.max(minSize, startCrop.w + deltaX);
+              let h = w / aspect;
+              if (y0 + h > imgH) {
+                h = imgH - y0;
+                w = h * aspect;
+              }
+              if (x0 + w > imgW) {
+                w = imgW - x0;
+                h = w / aspect;
+              }
+              state.crop.x = x0;
+              state.crop.y = y0;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            } else if (interactionMode === 'nw') {
+              // Anchor is bottom-right (x1, y1)
+              let w = Math.max(minSize, startCrop.w - deltaX);
+              let h = w / aspect;
+              if (y1 - h < 0) {
+                h = y1;
+                w = h * aspect;
+              }
+              if (x1 - w < 0) {
+                w = x1;
+                h = w / aspect;
+              }
+              state.crop.x = x1 - w;
+              state.crop.y = y1 - h;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            } else if (interactionMode === 'ne') {
+              // Anchor is bottom-left (x0, y1)
+              let w = Math.max(minSize, startCrop.w + deltaX);
+              let h = w / aspect;
+              if (y1 - h < 0) {
+                h = y1;
+                w = h * aspect;
+              }
+              if (x0 + w > imgW) {
+                w = imgW - x0;
+                h = w / aspect;
+              }
+              state.crop.x = x0;
+              state.crop.y = y1 - h;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            } else if (interactionMode === 'sw') {
+              // Anchor is top-right (x1, y0)
+              let w = Math.max(minSize, startCrop.w - deltaX);
+              let h = w / aspect;
+              if (y0 + h > imgH) {
+                h = imgH - y0;
+                w = h * aspect;
+              }
+              if (x1 - w < 0) {
+                w = x1;
+                h = w / aspect;
+              }
+              state.crop.x = x1 - w;
+              state.crop.y = y0;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            } else if (interactionMode === 'e' || interactionMode === 'w') {
+              let w = (interactionMode === 'e') ? startCrop.w + deltaX : startCrop.w - deltaX;
+              w = Math.max(minSize, w);
+              let h = w / aspect;
+              if (h > imgH) {
+                h = imgH;
+                w = h * aspect;
+              }
+              const centerY = (y0 + y1) / 2;
+              let newY = Math.max(0, Math.min(centerY - h / 2, imgH - h));
+              let newX = (interactionMode === 'e') ? x0 : x1 - w;
+              if (newX < 0) { newX = 0; w = x1; h = w / aspect; }
+              if (newX + w > imgW) { w = imgW - newX; h = w / aspect; }
+              state.crop.x = newX;
+              state.crop.y = newY;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            } else if (interactionMode === 's' || interactionMode === 'n') {
+              let h = (interactionMode === 's') ? startCrop.h + deltaY : startCrop.h - deltaY;
+              h = Math.max(minSize, h);
+              let w = h * aspect;
+              if (w > imgW) {
+                w = imgW;
+                h = w / aspect;
+              }
+              const centerX = (x0 + x1) / 2;
+              let newX = Math.max(0, Math.min(centerX - w / 2, imgW - w));
+              let newY = (interactionMode === 's') ? y0 : y1 - h;
+              if (newY < 0) { newY = 0; h = y1; w = h * aspect; }
+              if (newY + h > imgH) { h = imgH - newY; w = h * aspect; }
+              state.crop.x = newX;
+              state.crop.y = newY;
+              state.crop.w = Math.max(minSize, w);
+              state.crop.h = Math.max(minSize, h);
+            }
+          } else {
+            // Unconstrained free-form resizing
+            let left = x0;
+            let top = y0;
+            let right = x1;
+            let bottom = y1;
+
+            if (interactionMode.includes('w')) left = Math.min(right - minSize, Math.max(0, x0 + deltaX));
+            if (interactionMode.includes('e')) right = Math.max(left + minSize, Math.min(imgW, x1 + deltaX));
+            if (interactionMode.includes('n')) top = Math.min(bottom - minSize, Math.max(0, y0 + deltaY));
+            if (interactionMode.includes('s')) bottom = Math.max(top + minSize, Math.min(imgH, y1 + deltaY));
+
+            state.crop.x = left;
+            state.crop.y = top;
+            state.crop.w = right - left;
+            state.crop.h = bottom - top;
+          }
+        }
+
+        updateCropBoxUI();
+        convertImage();
+      }
+
+      function onPointerUp(e) {
+        if (!isInteracting) return;
+        isInteracting = false;
+        interactionMode = null;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        convertImage();
+      }
+
+      elements.cropOverlay.addEventListener('pointerdown', onPointerDown);
+    }
+
+    /**
+     * Core 1-Bit Image Conversion (Threshold + Floyd-Steinberg Dithering)
+     */
+    function convertImage() {
+      if (!state.imageLoaded) return;
+
+      const targetW = state.targetW;
+      const targetH = state.targetH;
+
+      // Offscreen canvas for sampling the crop area
+      const sampleCanvas = document.createElement('canvas');
+      sampleCanvas.width = targetW;
+      sampleCanvas.height = targetH;
+      const ctx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+      // Draw selected crop area scaled to target LCD resolution
+      ctx.drawImage(
+        state.image,
+        state.crop.x,
+        state.crop.y,
+        state.crop.w,
+        state.crop.h,
+        0,
+        0,
+        targetW,
+        targetH
+      );
+
+      const imgData = ctx.getImageData(0, 0, targetW, targetH);
+      const pixels = imgData.data;
+
+      // Extract luminance / grayscale values into a float buffer
+      const grayBuffer = new Float32Array(targetW * targetH);
+      for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
+        // Standard Rec. 601 luma calculation: 0.299R + 0.587G + 0.114B
+        grayBuffer[j] = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+      }
+
+      const binaryData = new Uint8Array(targetW * targetH);
+      const threshold = state.threshold;
+      const invert = state.invert;
+
+      if (state.dithering) {
+        // Floyd-Steinberg error diffusion algorithm
+        for (let y = 0; y < targetH; y++) {
+          for (let x = 0; x < targetW; x++) {
+            const idx = y * targetW + x;
+            const oldVal = grayBuffer[idx];
+            // Compare with threshold
+            const newVal = oldVal >= threshold ? 255 : 0;
+            const error = oldVal - newVal;
+
+            // Output 1-bit value
+            let bit = (newVal === 255) ? 1 : 0;
+            if (invert) bit = 1 - bit;
+            binaryData[idx] = bit;
+
+            // Diffuse quantization error to neighbors:
+            // (x + 1, y)     += error * 7 / 16
+            // (x - 1, y + 1) += error * 3 / 16
+            // (x,     y + 1) += error * 5 / 16
+            // (x + 1, y + 1) += error * 1 / 16
+            if (x + 1 < targetW) {
+              grayBuffer[idx + 1] += error * (7 / 16);
+            }
+            if (y + 1 < targetH) {
+              if (x - 1 >= 0) {
+                grayBuffer[(y + 1) * targetW + (x - 1)] += error * (3 / 16);
+              }
+              grayBuffer[(y + 1) * targetW + x] += error * (5 / 16);
+              if (x + 1 < targetW) {
+                grayBuffer[(y + 1) * targetW + (x + 1)] += error * (1 / 16);
+              }
+            }
+          }
+        }
+      } else {
+        // Direct Threshold conversion without dithering
+        for (let i = 0; i < grayBuffer.length; i++) {
+          let bit = (grayBuffer[i] >= threshold) ? 1 : 0;
+          if (invert) bit = 1 - bit;
+          binaryData[i] = bit;
+        }
+      }
+
+      state.binaryData = binaryData;
+      renderLcdCanvas();
+      updateMetrics();
+      updateCodeOutput();
+    }
+
+    /**
+     * Render the 1-bit binary data onto LCD Canvas
+     * Supports single LCD bit width & height ratio and realistic dot matrix gap
+     */
+    function renderLcdCanvas() {
+      if (!state.binaryData) return;
+
+      const canvas = elements.lcdCanvas;
+      const targetW = state.targetW;
+      const targetH = state.targetH;
+      const rw = state.bitRatioW;
+      const rh = state.bitRatioH;
+
+      // Determine pixel scale factor
+      let baseScale = 4;
+      if (state.zoomMode === 'auto') {
+        const maxLcdWidth = 560;
+        if (targetW * rw * baseScale > maxLcdWidth) {
+          baseScale = Math.max(1, Math.floor(maxLcdWidth / (targetW * rw)));
+        }
+        if (targetW <= 64) baseScale = Math.max(baseScale, 6);
+      } else {
+        baseScale = parseFloat(state.zoomMode) || 4;
+      }
+
+      const cellW = baseScale * rw;
+      const cellH = baseScale * rh;
+      const gap = (state.showGrid && cellW >= 3 && cellH >= 3) ? 1 : 0;
+
+      canvas.width = Math.round(targetW * cellW);
+      canvas.height = Math.round(targetH * cellH);
+
+      const ctx = canvas.getContext('2d');
+      // Fill entire background with color0
+      ctx.fillStyle = state.color0;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const color1 = state.color1;
+      const color0 = state.color0;
+
+      for (let y = 0; y < targetH; y++) {
+        const py0 = Math.round(y * cellH);
+        const py1 = Math.round((y + 1) * cellH);
+        const ph = Math.max(1, (py1 - py0) - gap);
+
+        for (let x = 0; x < targetW; x++) {
+          const bit = state.binaryData[y * targetW + x];
+          const px0 = Math.round(x * cellW);
+          const px1 = Math.round((x + 1) * cellW);
+          const pw = Math.max(1, (px1 - px0) - gap);
+
+          ctx.fillStyle = (bit === 1) ? color1 : color0;
+          ctx.fillRect(px0, py0, pw, ph);
+        }
+      }
+    }
+
+    /**
+     * Update pixel statistics & memory metrics
+     */
+    function updateMetrics() {
+      if (!state.binaryData) return;
+      const total = state.binaryData.length;
+      let active = 0;
+      for (let i = 0; i < total; i++) {
+        if (state.binaryData[i] === 1) active++;
+      }
+      const inactive = total - active;
+      const bytes = Math.ceil(total / 8);
+
+      elements.metricTotal.textContent = total;
+      elements.metricActive.textContent = active;
+      elements.metricInactive.textContent = inactive;
+      elements.metricBytes.textContent = `${bytes} Bytes`;
+    }
+
+    /**
+     * Generate C Code / Byte arrays for LCD drivers
+     */
+    function updateCodeOutput() {
+      if (!state.binaryData) return;
+
+      const format = elements.exportFormat.value;
+      const targetW = state.targetW;
+      const targetH = state.targetH;
+      const totalPixels = targetW * targetH;
+      const bin = state.binaryData;
+
+      const bytes = [];
+
+      if (format === 'horizontal_msb' || format === 'horizontal_lsb') {
+        // Horizontal: Rows first, each byte has 8 horizontal pixels
+        const isMsb = (format === 'horizontal_msb');
+        for (let y = 0; y < targetH; y++) {
+          let currentByte = 0;
+          let bitCount = 0;
+          for (let x = 0; x < targetW; x++) {
+            const bit = bin[y * targetW + x];
+            if (isMsb) {
+              currentByte = (currentByte << 1) | bit;
+            } else {
+              currentByte |= (bit << bitCount);
+            }
+            bitCount++;
+            if (bitCount === 8) {
+              bytes.push(currentByte);
+              currentByte = 0;
+              bitCount = 0;
+            }
+          }
+          if (bitCount > 0) {
+            if (isMsb) currentByte <<= (8 - bitCount);
+            bytes.push(currentByte);
+          }
+        }
+      } else if (format === 'vertical_page') {
+        // Vertical page mode (8 vertical pixels per byte, SSD1306/PCD8544 style)
+        const pages = Math.ceil(targetH / 8);
+        for (let page = 0; page < pages; page++) {
+          for (let x = 0; x < targetW; x++) {
+            let byteVal = 0;
+            for (let b = 0; b < 8; b++) {
+              const y = page * 8 + b;
+              if (y < targetH) {
+                const bit = bin[y * targetW + x];
+                byteVal |= (bit << b);
+              }
+            }
+            bytes.push(byteVal);
+          }
+        }
+      } else {
+        // Raw hex array
+        for (let i = 0; i < totalPixels; i += 8) {
+          let b = 0;
+          for (let bitIdx = 0; bitIdx < 8; bitIdx++) {
+            if (i + bitIdx < totalPixels) {
+              b = (b << 1) | bin[i + bitIdx];
+            }
+          }
+          bytes.push(b);
+        }
+      }
+
+      // Format C Array string
+      const lines = [];
+      lines.push(`// LCD Bitmap Data: ${targetW}x${targetH} px, ${bytes.length} bytes`);
+      lines.push(`// Format: ${format}`);
+      lines.push(`const unsigned char bitmap_${targetW}x${targetH}[] = {`);
+
+      let lineStr = '    ';
+      for (let i = 0; i < bytes.length; i++) {
+        const hex = '0x' + bytes[i].toString(16).padStart(2, '0').toUpperCase();
+        lineStr += hex + ', ';
+        if ((i + 1) % 16 === 0) {
+          lines.push(lineStr.trimEnd());
+          lineStr = '    ';
+        }
+      }
+      if (lineStr.trim() !== '') {
+        lines.push(lineStr.trimEnd());
+      }
+      lines.push('};');
+
+      elements.codeOutput.value = lines.join('\n');
+    }
+
+    /**
+     * Download 1-Bit PNG File
+     */
+    function downloadBitmapPng() {
+      if (!state.binaryData) return;
+
+      const targetW = state.targetW;
+      const targetH = state.targetH;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = targetW;
+      exportCanvas.height = targetH;
+      const ctx = exportCanvas.getContext('2d');
+
+      const imgData = ctx.createImageData(targetW, targetH);
+      const data = imgData.data;
+
+      // Parse hex colors for result 1 and result 0
+      const c1 = hexToRgb(state.color1);
+      const c0 = hexToRgb(state.color0);
+
+      for (let i = 0; i < state.binaryData.length; i++) {
+        const bit = state.binaryData[i];
+        const color = (bit === 1) ? c1 : c0;
+        const offset = i * 4;
+        data[offset]     = color.r;
+        data[offset + 1] = color.g;
+        data[offset + 2] = color.b;
+        data[offset + 3] = 255;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      const link = document.createElement('a');
+      link.download = `lcd_bitmap_${targetW}x${targetH}.png`;
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function hexToRgb(hex) {
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const num = parseInt(c, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    // Start on DOM ready
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
