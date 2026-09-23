@@ -352,6 +352,24 @@
       background: var(--border-highlight);
     }
 
+    .btn-download {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(135deg, #047857, #059669);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn-download:active {
+      transform: translateY(0);
+    }
+
     .btn-full {
       width: 100%;
     }
@@ -684,22 +702,22 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label data-i18n="targetWidth">Target Width (px)</label>
+            <label data-i18n="targetWidth">LCD Width (px)</label>
             <input type="number" id="targetWidth" value="128" min="4" max="1024" step="1">
           </div>
           <div class="form-group">
-            <label data-i18n="targetHeight">Target Height (px)</label>
+            <label data-i18n="targetHeight">LCD Height (px)</label>
             <input type="number" id="targetHeight" value="64" min="4" max="1024" step="1">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label data-i18n="bitWidthRatio">Bit Width Ratio</label>
+            <label data-i18n="bitWidthRatio">Pixel Width Ratio</label>
             <input type="number" id="bitWidthRatio" value="1.0" min="0.1" max="10.0" step="0.1">
           </div>
           <div class="form-group">
-            <label data-i18n="bitHeightRatio">Bit Height Ratio</label>
+            <label data-i18n="bitHeightRatio">Pixel Height Ratio</label>
             <input type="number" id="bitHeightRatio" value="1.0" min="0.1" max="10.0" step="0.1">
           </div>
         </div>
@@ -708,6 +726,11 @@
           <input type="checkbox" id="lockCropAspect" checked>
           <span data-i18n="lockCropAspect">Lock Box to LCD Aspect Ratio</span>
         </div>
+
+        <button class="btn btn-secondary btn-full" id="fitCropBtn">
+          <span>⛶</span>
+          <span data-i18n="btnFitCrop">Fit Selection to Full Image</span>
+        </button>
       </div>
 
       <!-- 3. Conversion & Threshold & Dithering -->
@@ -757,20 +780,7 @@
         </div>
       </div>
 
-      <!-- 4. Conversion Action Buttons -->
-      <div class="panel-section">
-        <button class="btn btn-primary btn-full" id="convertBtn">
-          <span>⚡</span>
-          <span data-i18n="btnConvert">Convert / Refresh LCD Bitmap</span>
-        </button>
-
-        <button class="btn btn-secondary btn-full" id="fitCropBtn">
-          <span>⛶</span>
-          <span data-i18n="btnFitCrop">Fit Selection to Full Image</span>
-        </button>
-      </div>
-
-      <!-- 5. Export Code / Output -->
+      <!-- 4. Export Code / Output -->
       <div class="panel-section code-export-area">
         <div class="section-title">
           <span>💾</span>
@@ -796,7 +806,7 @@
 
         <textarea class="code-box" id="codeOutput" readonly spellcheck="false"></textarea>
 
-        <button class="btn btn-secondary btn-full" id="downloadImageBtn">
+        <button class="btn btn-download btn-full" id="downloadImageBtn">
           <span>📥</span>
           <span data-i18n="btnDownloadImage">Download 1-Bit PNG</span>
         </button>
@@ -908,10 +918,10 @@
         secTargetSpec: "Target LCD Spec",
         quickPresets: "Standard Resolution Presets:",
         optCustom: "Custom Resolution",
-        targetWidth: "Target Width (px)",
-        targetHeight: "Target Height (px)",
-        bitWidthRatio: "Bit Width Ratio",
-        bitHeightRatio: "Bit Height Ratio",
+        targetWidth: "LCD Width (px)",
+        targetHeight: "LCD Height (px)",
+        bitWidthRatio: "Pixel Width Ratio",
+        bitHeightRatio: "Pixel Height Ratio",
         lockCropAspect: "Lock Box to LCD Aspect Ratio",
         secBinarization: "1-Bit Conversion",
         thresholdLabel: "Binarization Threshold (0 - 255):",
@@ -920,7 +930,6 @@
         colorBit1: "Result 1 Color (Active Pixel):",
         colorBit0: "Result 0 Color (Background):",
         showPixelGrid: "Simulate LCD Grid / Pixel Gap",
-        btnConvert: "Convert / Refresh LCD Bitmap",
         btnFitCrop: "Fit Selection to Full Image",
         secExport: "C Code & Bitmap Export",
         lblFormat: "Format:",
@@ -946,10 +955,10 @@
         secTargetSpec: "目标 LCD 规格",
         quickPresets: "常用分辨率预设：",
         optCustom: "自定义分辨率",
-        targetWidth: "目标宽度 (像素)",
-        targetHeight: "目标高度 (像素)",
-        bitWidthRatio: "单像素宽度比例",
-        bitHeightRatio: "单像素高度比例",
+        targetWidth: "LCD 宽度 (像素)",
+        targetHeight: "LCD 高度 (像素)",
+        bitWidthRatio: "像素宽度比例",
+        bitHeightRatio: "像素高度比例",
         lockCropAspect: "选框锁定为 LCD 宽高比",
         secBinarization: "单色二值化参数",
         thresholdLabel: "二值化阈值 (0 - 255)：",
@@ -958,7 +967,6 @@
         colorBit1: "结果 1 颜色 (点亮像素)：",
         colorBit0: "结果 0 颜色 (底色/熄灭)：",
         showPixelGrid: "模拟 LCD 像素间隙点阵感",
-        btnConvert: "转换 / 刷新点阵图像",
         btnFitCrop: "重置选框至全图",
         secExport: "C 语言代码与图像导出",
         lblFormat: "点阵取模格式：",
@@ -1050,7 +1058,6 @@
       colorBit1: document.getElementById('colorBit1'),
       colorBit0: document.getElementById('colorBit0'),
       showPixelGrid: document.getElementById('showPixelGrid'),
-      convertBtn: document.getElementById('convertBtn'),
       fitCropBtn: document.getElementById('fitCropBtn'),
       sourceImage: document.getElementById('sourceImage'),
       imageWrapper: document.getElementById('imageWrapper'),
@@ -1269,11 +1276,6 @@
       elements.zoomSelect.addEventListener('change', (e) => {
         state.zoomMode = e.target.value;
         renderLcdCanvas();
-      });
-
-      // Convert Button
-      elements.convertBtn.addEventListener('click', () => {
-        convertImage();
       });
 
       // Fit Crop Button
